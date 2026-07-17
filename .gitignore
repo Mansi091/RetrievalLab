@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+.system_generated/
+model.keras
+model.pth
+scaler.pkl
+rui-dataset.csv
+test_batch.csv
+.agents/
+model.pkl
+rui-dataset-engineered.csv
+
+venv_win/
+mlruns/
+mlflow.db
+data/
