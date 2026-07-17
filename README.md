@@ -4,24 +4,49 @@ This repository contains an end-to-end Machine Learning and REST API system desi
 
 ## 🚀 Key Highlights
 
-* **Advanced Tabular Model:** An XGBoost Classifier trained on stratified 5-fold cross-validation, outperforming standard dense neural networks.
+* **Multi-Model Shootout:** We rigorously evaluated four distinct machine learning architectures: **LightGBM, XGBoost, Random Forest, and a Multi-Layer Perceptron (MLP)**.
 * **Domain-Driven Feature Engineering:** Includes physical derived features: `Power = Torque * Rotational Speed` and `Temp Difference = Process Temp - Air Temp` to guide decision boundaries.
-* **Precision Optimization:** Uses precision-recall threshold tuning (`threshold = 0.8615`) to reduce false alarms by ~54% compared to default settings.
-* **Explainable AI (XAI):** Employs **SHAP TreeExplainer** on the backend for near-instantaneous (under 1ms) feature contribution analysis.
+* **Precision Optimization:** Uses precision-recall threshold tuning to maximize the **F1-Score** and minimize expensive false alarms.
+* **Explainable AI (XAI):** Employs **SHAP** (TreeExplainer & KernelExplainer) on the backend for near-instantaneous feature contribution analysis, dynamically adapting to the architecture of the winning model.
+* **MLflow Tracking:** The entire training lifecycle (hyperparameters, metrics, and PR/ROC curves) is strictly logged to an MLflow experiment registry.
 * **Production-Grade API & Dashboard:** Includes a FastAPI backend serving a lightweight, interactive HTML/CSS dark-mode telemetry diagnostic dashboard.
 
 ---
 
-## 📊 Performance Metrics
+## 🧠 Machine Learning Models
 
-* **Precision (False Alarms):** **82.4%** (Only ~1 in 5 predictions is a false positive)
-* **Recall (Detect Rate):** **74.6%** (Successfully captures three-quarters of actual failures)
-* **F1-Score:** **78.3%**
-* **PR-AUC:** **83.3%**
-* **Avg API Latency:** **<5ms** (SHAP explanation latency reduced by 98% using TreeExplainer)
-* **Dataset Size:** **10,000** machine telemetry records
+The core of this project relies on a comprehensive comparison of different algorithmic approaches on the highly imbalanced AI4I 2020 Predictive Maintenance Dataset. 
 
-### 📈 Model Evaluation Visualizations
+### 1. LightGBM (Gradient Boosting) 🏆 *Winning Model*
+LightGBM won the overall shootout. Its leaf-wise tree growth strategy allowed it to capture complex non-linear sensor relationships incredibly fast while remaining highly robust to the class imbalance. 
+
+### 2. Random Forest
+An ensemble of decision trees used as our primary baseline. It achieved excellent accuracy but suffered slightly in finding the optimal precision-recall balance compared to the gradient boosting techniques.
+
+### 3. XGBoost
+XGBoost utilized a custom `scale_pos_weight` parameter to aggressively penalize false negatives (missed failures). It performed exceptionally well but was marginally edged out by LightGBM in the final F1-score.
+
+### 4. Multi-Layer Perceptron (Neural Network)
+A dense, feed-forward neural network (MLP) was trained to test if deep learning architectures could natively pick up on complex telemetry interactions better than tree-based models. While performant, it fell slightly behind the gradient boosting models on this specific tabular dataset.
+
+---
+
+## 📊 Comprehensive Model Evaluation
+
+All models were evaluated using **5-Fold Stratified Cross-Validation**. Because predictive maintenance datasets are highly imbalanced (failures are rare), we optimized our decision thresholds using **F1-Score** and **PR-AUC** rather than raw accuracy.
+
+### Final Shootout Metrics
+
+| Model | Accuracy | F1-Score | Precision | Recall | PR-AUC | ROC-AUC |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **LightGBM 🏆** | **98.80%** | **0.8107** | **87.12%** | **75.81%** | **0.8549** | **0.9777** |
+| Random Forest | 98.77% | 0.8069 | 86.24% | 75.81% | 0.8556 | 0.9722 |
+| XGBoost | 98.68% | 0.7911 | 85.32% | 73.75% | 0.8337 | 0.9785 |
+| MLP (Neural Net)| 98.13% | 0.7302 | 71.47% | 74.63% | 0.7842 | 0.9735 |
+
+> *Note: All training runs, parameters, and these metrics are automatically tracked and logged to the local `mlruns` directory via MLflow.*
+
+### 📈 Model Evaluation Visualizations (LightGBM)
 
 | Precision-Recall Curve & Threshold Tuning | Confusion Matrix |
 | :---: | :---: |
@@ -33,17 +58,22 @@ This repository contains an end-to-end Machine Learning and REST API system desi
 
 ```
                  +---------------------------+
-                 |       rui-dataset.csv     |
+                 |   data/rui-dataset.csv    |
+                 +-------------+-------------+
+                               | (src/eda_analyzer.py)
+                               v
+                 +---------------------------+
+                 | rui-dataset-engineered.csv|
                  +-------------+-------------+
                                |
                                v
                  +---------------------------+
-                 |  train_advanced.py (XGB)  |
+                 |  src/train_advanced.py    | <--- MLflow Tracking
                  +-------+-----------+-------+
                          |           |
                          v           v
              +---------------+   +-----------+
-             |   model.pkl   |   | eda plots |
+             |models/model.pkl|  | eda plots |
              +-------+-------+   +-----------+
                      |
                      v
@@ -54,7 +84,7 @@ This repository contains an end-to-end Machine Learning and REST API system desi
                              v
               +-----------------------------+
               | - Failure Probability       |
-              | - SHAP Tree Contribution    |
+              | - SHAP Feature Contribution |
               | - Troubleshooting Guidance  |
               +-----------------------------+
 ```
@@ -78,48 +108,33 @@ Additionally, 2 physics-derived features are engineered:
 
 ## ⚙️ Installation & Usage
 
-### 1. Prerequisites
-Ensure you have Python 3.10+ installed.
-
-### 2. Setup Environment
+### 1. Setup Environment
 Clone the repository, create a virtual environment, and install dependencies:
 ```powershell
-# Clone the repository
-git clone https://github.com/Mansi091/Predictive-Maintainance.git
-cd Predictive-Maintainance
-
-# Create and activate virtual environment
-python -m venv .venv
-.venv\Scripts\activate
-
-# Install requirements
+git clone https://github.com/Mansi091/RetrievalLab.git
+cd RetrievalLab
+python -m venv venv_win
+venv_win\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3. Exploratory Data Analysis & Feature Engineering
+### 2. Exploratory Data Analysis & Feature Engineering
 Generate EDA trends and correlation heatmap plots:
 ```powershell
-python eda_analyzer.py
+python src/eda_analyzer.py
 ```
 Plots will be saved inside the `static/eda` folder.
 
-### 4. Advanced Model Training
-To train the XGBoost and Random Forest classifiers, tune decision thresholds, and output validation metrics:
+### 3. Model Training & MLflow Tracking
+To train all 4 classifiers (LightGBM, XGBoost, Random Forest, MLP), track them in MLflow, and save the winning model:
 ```powershell
-python train_advanced.py
+python src/train_advanced.py
 ```
+You can view the MLflow UI by running: `mlflow ui`
 
-### 5. Running the REST API & Dashboard
+### 4. Running the REST API & Dashboard
 Start the FastAPI server:
 ```powershell
 python -m uvicorn app:app --reload
 ```
-* Access the interactive API Swagger documentation at: **`http://127.0.0.1:8000/docs`**
 * Access the interactive Dashboard at: **`http://127.0.0.1:8000/`**
-
-### 6. Running the QA Integration Test Suite
-To verify the system end-to-end (starts background API, tests healthy/failure payloads, runs batch CSV uploads, and shuts down):
-```powershell
-python test_api.py
-```
-
