@@ -1,6 +1,6 @@
-# Predictive Maintenance System & Explainable AI (XAI) Engine
+# RetailLab
 
-This repository contains an end-to-end Machine Learning and REST API system designed to monitor industrial machine telemetry, predict imminent mechanical failures, and provide transparent explanations for predictions using Explainable AI (SHAP).
+An end-to-end Machine Learning and REST API system designed to monitor industrial machine telemetry, predict imminent mechanical failures, and provide transparent explanations for predictions using Explainable AI (SHAP).
 
 ## 🚀 Key Highlights
 
